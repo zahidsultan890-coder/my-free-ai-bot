@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lifetime Free AI Chatbot</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --chat-bg: #1e1e1e;
+            --user-msg: #2563eb;
+            --bot-msg: #2d2d2d;
+            --text-color: #ffffff;
+            --accent: #3b82f6;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        header {
+            background-color: var(--chat-bg);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #333;
+        }
+
+        h2 { margin: 0; font-size: 1.2rem; }
+
+        #api-key-input {
+            background: #2b2b2b;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 6px;
+            width: 240px;
+        }
+
+        #chat-window {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            line-height: 1.5;
+            word-wrap: break-word;
+        }
+
+        .user-message {
+            background-color: var(--user-msg);
+            align-self: flex-end;
+            border-bottom-right-radius: 2px;
+        }
+
+        .bot-message {
+            background-color: var(--bot-msg);
+            align-self: flex-start;
+            border-bottom-left-radius: 2px;
+        }
+
+        .generated-media {
+            width: 100%;
+            max-width: 400px;
+            border-radius: 8px;
+            margin-top: 8px;
+            display: block;
+        }
+
+        #input-area {
+            background-color: var(--chat-bg);
+            padding: 15px;
+            display: flex;
+            gap: 10px;
+            border-top: 1px solid #333;
+        }
+
+        #prompt-input {
+            flex: 1;
+            background-color: #2b2b2b;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        select, button {
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        select { background-color: #2b2b2b; border: 1px solid #444; }
+        button:hover { opacity: 0.9; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h2>⚡ Free Lifetime Multi-Modal AI</h2>
+        <input type="password" id="api-key-input" placeholder="Paste Free OpenRouter Key (sk-or-...)" />
+    </header>
+
+    <div id="chat-window">
+        <div class="message bot-message">
+            Hello! I am your lifetime free AI assistant. I can answer questions, generate images, or create short videos!<br><br>
+            • To generate an image, start with: <b>/image ...</b><br>
+            • To generate a video, start with: <b>/video ...</b><br>
+            • Otherwise, just ask any question directly.
+        </div>
+    </div>
+
+    <div id="input-area">
+        <input type="text" id="prompt-input" placeholder="Ask anything, or use /image or /video..." />
+        <button onclick="handleSend()">Send</button>
+    </div>
+
+    <script>
+        async function handleSend() {
+            const inputEl = document.getElementById('prompt-input');
+            const apiKey = document.getElementById('api-key-input').value.trim();
+            const prompt = inputEl.value.trim();
+
+            if (!prompt) return;
+
+            appendMessage(prompt, 'user-message');
+            inputEl.value = '';
+
+            // Handle Image Request
+            if (prompt.startsWith('/image ')) {
+                const imagePrompt = prompt.replace('/image ', '');
+                appendMessage('🎨 Generating image, please wait...', 'bot-message');
+                const encodedPrompt = encodeURIComponent(imagePrompt);
+                const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=768&height=768&nologo=true`;
+                
+                const lastMsg = document.querySelector('#chat-window .bot-message:last-child');
+                lastMsg.innerHTML = `Here is your image:<br><img class="generated-media" src="${imageUrl}" alt="Generated Image" onload="scrollToBottom()">`;
+                return;
+            }
+
+            // Handle Video Request
+            if (prompt.startsWith('/video ')) {
+                const videoPrompt = prompt.replace('/video ', '');
+                appendMessage('🎥 Generating video (this takes 10–20 seconds)...', 'bot-message');
+                const encodedPrompt = encodeURIComponent(videoPrompt);
+                const videoUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=512&height=512&model=flux&video=true`;
+                
+                const lastMsg = document.querySelector('#chat-window .bot-message:last-child');
+                lastMsg.innerHTML = `Here is your video:<br><video class="generated-media" controls autoplay loop src="${videoUrl}"></video>`;
+                return;
+            }
+
+            // Handle Standard Text Request via OpenRouter Free Tier
+            if (!apiKey) {
+                appendMessage('⚠️ Please enter a free OpenRouter API key in the top box to answer text questions. (Image/Video works without a key)', 'bot-message');
+                return;
+            }
+
+            const loadingMsg = appendMessage('Thinking...', 'bot-message');
+
+            try {
+                const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${apiKey}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        "model": "openrouter/free",
+                        "messages": [{ "role": "user", "content": prompt }]
+                    })
+                });
+
+                const data = await response.json();
+                const aiReply = data.choices[0].message.content || "No response received.";
+                loadingMsg.innerHTML = aiReply.replace(/\n/g, '<br>');
+            } catch (err) {
+                loadingMsg.innerText = "Error fetching response. Check your API key or connection.";
+            }
+            scrollToBottom();
+        }
+
+        function appendMessage(text, className) {
+            const chatWindow = document.getElementById('chat-window');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${className}`;
+            msgDiv.innerText = text;
+            chatWindow.appendChild(msgDiv);
+            scrollToBottom();
+            return msgDiv;
+        }
+
+        function scrollToBottom() {
+            const chatWindow = document.getElementById('chat-window');
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        document.getElementById("prompt-input").addEventListener("keypress", function(event) {
+            if (event.key === "Enter") handleSend();
+        });
+    </script>
+</body>
+</html>
